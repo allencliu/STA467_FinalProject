@@ -1,0 +1,144 @@
+---
+title: "Final Project"
+author: "Allen Liu"
+date: "2024-04-03"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(caret)
+library(tidyverse)
+library(MASS)
+library(splines)
+library(glmnet)
+library(randomForest)
+```
+
+```{r, echo=FALSE}
+set.seed(05122024)
+wine <- read.csv("winequality-red.csv", header=T, stringsAsFactors=F)
+```
+
+```{r, echo=FALSE}
+# Classify wines >= 7 as good (1) and not good < 7 (0)
+wine$quality <- as.factor(ifelse(wine$quality >= 7, 'good', 'not_good'))
+```
+
+```{r, echo=FALSE}
+# Logistic Regression
+# wine_logit <- glm(quality ~ ., family=binomial(link=logit), data=wine)
+wine_logit <- train(quality ~ .,
+                     data = wine,
+                     method = "glm",
+                     trControl = trainControl(method = "cv", 
+                                              number = 10, 
+                                              savePredictions = TRUE, 
+                                              summaryFunction = twoClassSummary, 
+                                              classProbs = TRUE),
+                     metric = "ROC",
+                     preProcess=c("center","scale"))
+
+wine_logit2 <- train(quality ~ volatile.acidity + citric.acid + total.sulfur.dioxide + density + sulphates + alcohol,
+                     data = wine,
+                     method = "glm",
+                     trControl = trainControl(method = "cv", 
+                                              number = 10, 
+                                              savePredictions = TRUE, 
+                                              summaryFunction = twoClassSummary, 
+                                              classProbs = TRUE),
+                     metric = "ROC",
+                     preProcess=c("center","scale"))
+```
+
+```{r, echo=FALSE}
+# LDA
+wine_lda <- train(quality ~ .,
+                     data = wine,
+                     method = "lda",
+                     trControl = trainControl(method = "cv", 
+                                              number = 10, 
+                                              savePredictions = TRUE, 
+                                              summaryFunction = twoClassSummary, 
+                                              classProbs = TRUE),
+                     metric = "ROC",
+                     preProcess=c("center","scale"))
+
+# QDA
+wine_qda <- train(quality ~ .,
+                     data = wine,
+                     method = "qda",
+                     trControl = trainControl(method = "cv", 
+                                              number = 10, 
+                                              savePredictions = TRUE, 
+                                              summaryFunction = twoClassSummary, 
+                                              classProbs = TRUE),
+                     metric = "ROC",
+                     preProcess=c("center","scale"))
+```
+
+```{r, echo=FALSE}
+# Lasso/Ridge/Elastic
+
+# Lasso
+wine_lasso <- train(quality ~ .,
+                    data = wine,
+                    method="glmnet",
+                    trControl=trainControl(method="cv", 
+                                           number = 10,
+                                           savePredictions = TRUE, 
+                                           summaryFunction = twoClassSummary, 
+                                           classProbs = TRUE),
+                    metric = "ROC",
+                    tuneGrid=expand.grid(alpha=1,
+                                         lambda=seq(0,0.1,by=0.01)),
+                    preProcess=c("center","scale"))
+
+# Ridge
+wine_ridge <- train(quality ~ .,
+                    data = wine,
+                    method="glmnet",
+                    trControl=trainControl(method="cv", 
+                                           number = 10,
+                                           savePredictions = TRUE, 
+                                           summaryFunction = twoClassSummary, 
+                                           classProbs = TRUE),
+                    metric = "ROC",
+                    tuneGrid=expand.grid(alpha=0,
+                                         lambda=seq(0,0.1,by=0.01)),
+                    preProcess=c("center","scale"))
+
+wine_elastic <- train(quality ~ .,
+                    data = wine,
+                    method="glmnet",
+                    trControl=trainControl(method="cv", 
+                                           number = 10,
+                                           savePredictions = TRUE, 
+                                           summaryFunction = twoClassSummary, 
+                                           classProbs = TRUE),
+                    metric = "ROC",
+                    tuneGrid=expand.grid(alpha=seq(0,0.1,by=0.01),
+                                         lambda=seq(0,0.1,by=0.01)),
+                    preProcess=c("center","scale"))
+```
+
+```{r, echo=FALSE}
+# Decision Tree
+wine_tree <- train(quality ~ .,
+                   data=wine,
+                   method="rf",
+                   trControl=trainControl("oob"), # Out-of-bag MSE
+                   tuneGrid=data.frame(mtry=seq(1,11,by=1)),
+                   ntree=100) 
+
+varImp(rf_mod, scale=FALSE)
+
+plot(varImp(rf_mod, scale=FALSE))
+
+wine_subset <- quality ~ alcohol + sulphates + volatile.acidity + density
+```
+
+```{r}
+# Support Vector Machines
+```
+

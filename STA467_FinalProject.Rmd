@@ -2,7 +2,10 @@
 title: "Final Project"
 author: "Allen Liu"
 date: "2024-04-03"
-output: pdf_document
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -13,7 +16,32 @@ library(MASS)
 library(splines)
 library(glmnet)
 library(randomForest)
+library(GGally)
 ```
+
+## I. Introduction
+
+
+
+## II. Exploratory Data Analysis (EDA)
+
+
+
+## III. Modeling Approach, Building, and Evaluation
+
+
+
+## IV. Parameter Tuning and Model Comparison
+
+
+
+## V. Results, Discussion, and Conclusion
+
+
+
+## VI. References and Appendices
+
+
 
 ```{r, echo=FALSE}
 set.seed(05122024)
@@ -24,6 +52,11 @@ wine <- read.csv("winequality-red.csv", header=T, stringsAsFactors=F)
 # Classify wines >= 7 as good (1) and not good < 7 (0)
 wine$quality <- as.factor(ifelse(wine$quality >= 7, 'good', 'not_good'))
 ```
+
+```{r}
+ggpairs(wine)
+```
+
 
 ```{r, echo=FALSE}
 # Logistic Regression
@@ -39,17 +72,27 @@ wine_logit <- train(quality ~ .,
                      metric = "ROC",
                      preProcess=c("center","scale"))
 
-wine_logit2 <- train(quality ~ volatile.acidity + citric.acid + total.sulfur.dioxide + density + sulphates + alcohol,
-                     data = wine,
-                     method = "glm",
-                     trControl = trainControl(method = "cv", 
-                                              number = 10, 
-                                              savePredictions = TRUE, 
-                                              summaryFunction = twoClassSummary, 
-                                              classProbs = TRUE),
-                     metric = "ROC",
-                     preProcess=c("center","scale"))
+# wine_logit2 <- train(formula(wine_subset),
+#                      data = wine,
+#                      method = "glm",
+#                      trControl = trainControl(method = "cv", 
+#                                               number = 10, 
+#                                               savePredictions = TRUE, 
+#                                               summaryFunction = twoClassSummary, 
+#                                               classProbs = TRUE),
+#                      metric = "ROC",
+#                      preProcess=c("center","scale"))
 ```
+
+```{r}
+
+up_train <- upSample(x = wine[, 1:11],
+                     y = wine$quality)
+
+# Check the class distribution after upsampling
+table(up_train$Class)
+```
+
 
 ```{r, echo=FALSE}
 # LDA
@@ -127,18 +170,23 @@ wine_elastic <- train(quality ~ .,
 wine_tree <- train(quality ~ .,
                    data=wine,
                    method="rf",
-                   trControl=trainControl("oob"), # Out-of-bag MSE
+                   trControl=trainControl(method="cv", 
+                                           number = 10,
+                                          savePredictions = TRUE, 
+                                          summaryFunction = twoClassSummary, 
+                                          classProbs = TRUE), # Out-of-bag MSE
+                   metric = "ROC",
                    tuneGrid=data.frame(mtry=seq(1,11,by=1)),
-                   ntree=100) 
+                   ntree=100)
 
-varImp(rf_mod, scale=FALSE)
+varImp(wine_tree, scale=FALSE)
 
-plot(varImp(rf_mod, scale=FALSE))
+plot(varImp(wine_tree, scale=FALSE))
 
 wine_subset <- quality ~ alcohol + sulphates + volatile.acidity + density
 ```
 
-```{r}
+```{r, echo=FALSE}
 # Support Vector Machines
 ```
 

@@ -17,46 +17,69 @@ library(splines)
 library(glmnet)
 library(randomForest)
 library(GGally)
+library(ggplot2)
+library(corrplot)
 ```
 
 ## I. Introduction
+This wine data set presents an intriguing opportunity for predictive modeling, focusing on physicochemical properties and sensory data of the red wine variants of the Portuguese "Vinho Verde" wine. Sourced from the UCI machine learning repository and detailed by [Cortez et al., 2009], this data set offers a classification task: determining wine quality based on a 0 to 10 scale.
 
+Logistic regression, linear discriminant analysis (LDA), quadratic discriminant analysis (QDA), regularization techniques (Lasso, Ridge, Elastic Net), and random forest will be used to analyze this data set. Each model is tuned and evaluated using cross-validation techniques for robustness and accuracy.
+
+By setting a binary classification threshold for wine quality and leveraging advanced modeling approaches, the goal is to uncover the physiochemical attributes that differentiate red wines. The focus of this analysis extends beyond prediction; the aim is to understand the interplay of variables contributing to wine quality perception, thereby contributing to enology and predictive modeling.
 
 
 ## II. Exploratory Data Analysis (EDA)
 
+```{r, echo=FALSE}
+wine <- read.csv("winequality-red.csv", header=T, stringsAsFactors=F)
+# head(wine)
+```
+
+As part of the exploratory data analysis (EDA), the 'quality' variable will be modified into a binary format. This modification involves categorizing wines into two distinct groups: 'good' and 'not good.' The rationale behind this transformation is to simplify the analysis and modeling tasks by focusing on whether a wine is considered 'good' rather than its specific quality score.
+
+An arbitrary cutoff point will be set at a quality score of 7 or higher, classifying wines with scores above this threshold as 'good' and the remaining wines as 'not good.' This decision is informed by domain knowledge and prior research indicating that wines with higher quality scores are generally perceived more favorably by consumers.
+
+By converting the 'quality' variable into a binary format, it facilitates the identification of key factors that contribute to the perception of wine quality. Throughout this analysis, the binary 'quality' variable will be referred to, investigating the factors that distinguish 'good' wines from 'not good' ones, providing valuable insights for enology and predictive modeling tasks.
+
+```{r, echo=FALSE}
+# Classify wines >= 7 as good (1) and not good < 7 (0)
+wine$quality <- as.factor(ifelse(wine$quality >= 7, 'good', 'not_good'))
+head(wine)
+```
+
+
+```{r, echo=FALSE}
+ggpairs(wine)
+```
+
+
+
+```{r, echo=FALSE}
+# cor(wine[,-12])
+corrplot(cor(wine[,-12]))
+```
+
+
+In the context of analyzing the correlation plot, it's important to note that while certain variables may exhibit strong correlations, the models used for analysis will still incorporate the full predictor set initially. This approach ensures that the models consider all available information and relationships among the predictors before any feature selection or removal is performed. Later in the analysis, we will explore the impact of removing predictors based on correlations or other criteria and compare the performance of models with and without certain predictors. This comparative analysis will provide insights into the importance of individual predictors and their contribution to predictive modeling.
 
 
 ## III. Modeling Approach, Building, and Evaluation
 
 
-
-## IV. Parameter Tuning and Model Comparison
-
-
-
-## V. Results, Discussion, and Conclusion
-
-
-
-## VI. References and Appendices
-
-
-
 ```{r, echo=FALSE}
 set.seed(05122024)
-wine <- read.csv("winequality-red.csv", header=T, stringsAsFactors=F)
+
 ```
 
 ```{r, echo=FALSE}
-# Classify wines >= 7 as good (1) and not good < 7 (0)
-wine$quality <- as.factor(ifelse(wine$quality >= 7, 'good', 'not_good'))
-```
 
-```{r}
-ggpairs(wine)
-```
+up_train <- upSample(x = wine[, 1:11],
+                     y = wine$quality)
 
+# Check the class distribution after upsampling
+table(up_train$Class)
+```
 
 ```{r, echo=FALSE}
 # Logistic Regression
@@ -72,27 +95,17 @@ wine_logit <- train(quality ~ .,
                      metric = "ROC",
                      preProcess=c("center","scale"))
 
-# wine_logit2 <- train(formula(wine_subset),
-#                      data = wine,
-#                      method = "glm",
-#                      trControl = trainControl(method = "cv", 
-#                                               number = 10, 
-#                                               savePredictions = TRUE, 
-#                                               summaryFunction = twoClassSummary, 
-#                                               classProbs = TRUE),
-#                      metric = "ROC",
-#                      preProcess=c("center","scale"))
+wine_logit2 <- train(Class ~ .,
+                     data = up_train,
+                     method = "glm",
+                     trControl = trainControl(method = "cv",
+                                              number = 10,
+                                              savePredictions = TRUE,
+                                              summaryFunction = twoClassSummary,
+                                              classProbs = TRUE),
+                     metric = "ROC",
+                     preProcess=c("center","scale"))
 ```
-
-```{r}
-
-up_train <- upSample(x = wine[, 1:11],
-                     y = wine$quality)
-
-# Check the class distribution after upsampling
-table(up_train$Class)
-```
-
 
 ```{r, echo=FALSE}
 # LDA
@@ -107,9 +120,31 @@ wine_lda <- train(quality ~ .,
                      metric = "ROC",
                      preProcess=c("center","scale"))
 
+wine_lda2 <- train(Class ~ .,
+                     data = up_train,
+                     method = "lda",
+                     trControl = trainControl(method = "cv", 
+                                              number = 10, 
+                                              savePredictions = TRUE, 
+                                              summaryFunction = twoClassSummary, 
+                                              classProbs = TRUE),
+                     metric = "ROC",
+                     preProcess=c("center","scale"))
+
 # QDA
 wine_qda <- train(quality ~ .,
                      data = wine,
+                     method = "qda",
+                     trControl = trainControl(method = "cv", 
+                                              number = 10, 
+                                              savePredictions = TRUE, 
+                                              summaryFunction = twoClassSummary, 
+                                              classProbs = TRUE),
+                     metric = "ROC",
+                     preProcess=c("center","scale"))
+
+wine_qda2 <- train(Class ~ .,
+                     data = up_train,
                      method = "qda",
                      trControl = trainControl(method = "cv", 
                                               number = 10, 
@@ -137,6 +172,19 @@ wine_lasso <- train(quality ~ .,
                                          lambda=seq(0,0.1,by=0.01)),
                     preProcess=c("center","scale"))
 
+wine_lasso2 <- train(Class ~ .,
+                    data = up_train,
+                    method="glmnet",
+                    trControl=trainControl(method="cv", 
+                                           number = 10,
+                                           savePredictions = TRUE, 
+                                           summaryFunction = twoClassSummary, 
+                                           classProbs = TRUE),
+                    metric = "ROC",
+                    tuneGrid=expand.grid(alpha=1,
+                                         lambda=seq(0,0.1,by=0.01)),
+                    preProcess=c("center","scale"))
+
 # Ridge
 wine_ridge <- train(quality ~ .,
                     data = wine,
@@ -151,8 +199,34 @@ wine_ridge <- train(quality ~ .,
                                          lambda=seq(0,0.1,by=0.01)),
                     preProcess=c("center","scale"))
 
+wine_ridge2 <- train(Class ~ .,
+                    data = up_train,
+                    method="glmnet",
+                    trControl=trainControl(method="cv", 
+                                           number = 10,
+                                           savePredictions = TRUE, 
+                                           summaryFunction = twoClassSummary, 
+                                           classProbs = TRUE),
+                    metric = "ROC",
+                    tuneGrid=expand.grid(alpha=0,
+                                         lambda=seq(0,0.1,by=0.01)),
+                    preProcess=c("center","scale"))
+
 wine_elastic <- train(quality ~ .,
                     data = wine,
+                    method="glmnet",
+                    trControl=trainControl(method="cv", 
+                                           number = 10,
+                                           savePredictions = TRUE, 
+                                           summaryFunction = twoClassSummary, 
+                                           classProbs = TRUE),
+                    metric = "ROC",
+                    tuneGrid=expand.grid(alpha=seq(0,0.1,by=0.01),
+                                         lambda=seq(0,0.1,by=0.01)),
+                    preProcess=c("center","scale"))
+
+wine_elastic2 <- train(Class ~ .,
+                    data = up_train,
                     method="glmnet",
                     trControl=trainControl(method="cv", 
                                            number = 10,
@@ -179,14 +253,59 @@ wine_tree <- train(quality ~ .,
                    tuneGrid=data.frame(mtry=seq(1,11,by=1)),
                    ntree=100)
 
+wine_tree2 <- train(Class ~ .,
+                   data=up_train,
+                   method="rf",
+                   trControl=trainControl(method="cv", 
+                                           number = 10,
+                                          savePredictions = TRUE, 
+                                          summaryFunction = twoClassSummary, 
+                                          classProbs = TRUE), # Out-of-bag MSE
+                   metric = "ROC",
+                   tuneGrid=data.frame(mtry=seq(1,11,by=1)),
+                   ntree=100)
+
 varImp(wine_tree, scale=FALSE)
 
 plot(varImp(wine_tree, scale=FALSE))
 
 wine_subset <- quality ~ alcohol + sulphates + volatile.acidity + density
+
+wine_tree3 <- train(Class ~ alcohol + sulphates + volatile.acidity + density,
+                   data=up_train,
+                   method="rf",
+                   trControl=trainControl(method="cv", 
+                                           number = 10,
+                                          savePredictions = TRUE, 
+                                          summaryFunction = twoClassSummary, 
+                                          classProbs = TRUE), # Out-of-bag MSE
+                   metric = "ROC",
+                   tuneGrid=data.frame(mtry=seq(1,4,by=1)),
+                   ntree=100)
+
+wine_tree4 <- train(formula(wine_subset),
+                   data=wine,
+                   method="rf",
+                   trControl=trainControl(method="cv", 
+                                           number = 10,
+                                          savePredictions = TRUE, 
+                                          summaryFunction = twoClassSummary, 
+                                          classProbs = TRUE), # Out-of-bag MSE
+                   metric = "ROC",
+                   tuneGrid=data.frame(mtry=seq(1,4,by=1)),
+                   ntree=100)
 ```
 
 ```{r, echo=FALSE}
 # Support Vector Machines
 ```
+
+
+## IV. Results, Discussion, and Conclusion
+
+
+
+## V. References and Appendices
+
+
 

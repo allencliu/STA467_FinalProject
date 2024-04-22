@@ -72,12 +72,8 @@ It's important to note that while certain variables may exhibit strong correlati
 
 ## III. Modeling Approach, Building, and Evaluation
 
-
 ```{r, echo=FALSE}
 set.seed(05122024)
-```
-
-```{r, echo=FALSE}
 # Logistic Regression
 wine_logit <- train(quality ~ .,
                      data = wine,
@@ -93,6 +89,7 @@ wine_logit <- train(quality ~ .,
 ```
 
 ```{r, echo=FALSE}
+set.seed(05122024)
 # LDA
 wine_lda <- train(quality ~ .,
                      data = wine,
@@ -119,6 +116,7 @@ wine_qda <- train(quality ~ .,
 ```
 
 ```{r, echo=FALSE}
+set.seed(05122024)
 # Lasso/Ridge/Elastic
 
 # Lasso
@@ -166,6 +164,7 @@ wine_elastic <- train(quality ~ .,
 ```
 
 ```{r, echo=FALSE}
+set.seed(05122024)
 # Decision Tree
 wine_tree <- train(quality ~ .,
                    data=wine,
@@ -182,6 +181,10 @@ wine_tree <- train(quality ~ .,
 
 ```{r, echo=FALSE}
 # Support Vector Machines
+models <- list(Logistic = wine_logit, LDA = wine_lda, QDA = wine_qda, Lasso = wine_lasso, Ridge = wine_ridge, Elastic = wine_elastic, "Random Forest" = wine_tree)
+models <- models[order(names(models))]
+
+evalm1 <- evalm(models, gnames = names(models))
 ```
 
 
@@ -287,34 +290,39 @@ wine_tree2 <- train(Class ~ .,
                    tuneGrid=data.frame(mtry=seq(1,11,by=1)),
                    ntree=100)
 
-varImp(wine_tree, scale=FALSE)
+# varImp(wine_tree, scale=FALSE)
+# 
+# plot(varImp(wine_tree, scale=FALSE))
+# 
+# wine_subset <- quality ~ alcohol + sulphates + volatile.acidity + density
+# 
+# wine_tree3 <- train(Class ~ alcohol + sulphates + volatile.acidity + density,
+#                    data=up_train,
+#                    method="rf",
+#                    trControl=trainControl(method="cv", 
+#                                            number = 10,
+#                                           savePredictions = TRUE, 
+#                                           summaryFunction = twoClassSummary, 
+#                                           classProbs = TRUE), # Out-of-bag MSE
+#                    metric = "ROC",
+#                    tuneGrid=data.frame(mtry=seq(1,4,by=1)),
+#                    ntree=100)
+# 
+# wine_tree4 <- train(formula(wine_subset),
+#                    data=wine,
+#                    method="rf",
+#                    trControl=trainControl(method="cv", 
+#                                            number = 10,
+#                                           savePredictions = TRUE, 
+#                                           summaryFunction = twoClassSummary, 
+#                                           classProbs = TRUE), # Out-of-bag MSE
+#                    metric = "ROC",
+#                    tuneGrid=data.frame(mtry=seq(1,4,by=1)),
+#                    ntree=100)
 
-plot(varImp(wine_tree, scale=FALSE))
+models2 <- list(Logistic = wine_logit2, LDA = wine_lda2, QDA = wine_qda2, Lasso = wine_lasso2, Ridge = wine_ridge2, Elastic = wine_elastic2, "Random Forest" = wine_tree2)
+models2 <- models2[order(names(models2))]
 
-wine_subset <- quality ~ alcohol + sulphates + volatile.acidity + density
-
-wine_tree3 <- train(Class ~ alcohol + sulphates + volatile.acidity + density,
-                   data=up_train,
-                   method="rf",
-                   trControl=trainControl(method="cv", 
-                                           number = 10,
-                                          savePredictions = TRUE, 
-                                          summaryFunction = twoClassSummary, 
-                                          classProbs = TRUE), # Out-of-bag MSE
-                   metric = "ROC",
-                   tuneGrid=data.frame(mtry=seq(1,4,by=1)),
-                   ntree=100)
-
-wine_tree4 <- train(formula(wine_subset),
-                   data=wine,
-                   method="rf",
-                   trControl=trainControl(method="cv", 
-                                           number = 10,
-                                          savePredictions = TRUE, 
-                                          summaryFunction = twoClassSummary, 
-                                          classProbs = TRUE), # Out-of-bag MSE
-                   metric = "ROC",
-                   tuneGrid=data.frame(mtry=seq(1,4,by=1)),
-                   ntree=100)
+evalm2 <- evalm(models2, gnames = names(models2))
 ```
 

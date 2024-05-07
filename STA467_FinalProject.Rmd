@@ -275,6 +275,8 @@ By acknowledging and addressing these considerations, future iterations of the a
 
 ## V. References and Appendices
 
+**Appendix A: Sensitivity Improvement After Upsampling**
+
 ```{r, echo=FALSE}
 wine_logit_upsample <- train(quality ~ .,
                      data = wine,
@@ -362,7 +364,7 @@ wine_elastic_upsample <- train(quality ~ .,
                     preProcess=c("center","scale"))
 
 
-wine_tree_upsample<- train(quality ~ .,
+wine_tree_upsample <- train(quality ~ .,
                    data=wine,
                    method="rf",
                    trControl=trainControl(method = "repeatedcv", 
@@ -376,38 +378,8 @@ wine_tree_upsample<- train(quality ~ .,
                    tuneGrid=data.frame(mtry=seq(1,11,by=1)),
                    ntree=100)
 
-# varImp(wine_tree, scale=FALSE)
-# 
-# plot(varImp(wine_tree, scale=FALSE))
-# 
-# wine_subset <- quality ~ alcohol + sulphates + volatile.acidity + density
-# 
-# wine_tree3 <- train(Class ~ alcohol + sulphates + volatile.acidity + density,
-#                    data=up_train,
-#                    method="rf",
-#                    trControl=trainControl(method="cv", 
-#                                            number = 10,
-#                                           savePredictions = TRUE, 
-#                                           summaryFunction = twoClassSummary, 
-#                                           classProbs = TRUE), # Out-of-bag MSE
-#                    metric = "ROC",
-#                    tuneGrid=data.frame(mtry=seq(1,4,by=1)),
-#                    ntree=100)
-# 
-# wine_tree4 <- train(formula(wine_subset),
-#                    data=wine,
-#                    method="rf",
-#                    trControl=trainControl(method="cv", 
-#                                            number = 10,
-#                                           savePredictions = TRUE, 
-#                                           summaryFunction = twoClassSummary, 
-#                                           classProbs = TRUE), # Out-of-bag MSE
-#                    metric = "ROC",
-#                    tuneGrid=data.frame(mtry=seq(1,4,by=1)),
-#                    ntree=100)
-
-models2 <- list(Logistic = wine_logit_upsample, LDA = wine_lda_upsample, QDA = wine_qda_upsample, Lasso = wine_lasso_upsample, Ridge = wine_ridge_upsample, Elastic = wine_elastic_upsample, "Random Forest" = wine_tree_upsample)
-models_upsample <- models2[order(names(models2))]
+models_upsample <- list(Logistic = wine_logit_upsample, LDA = wine_lda_upsample, QDA = wine_qda_upsample, Lasso = wine_lasso_upsample, Ridge = wine_ridge_upsample, Elastic = wine_elastic_upsample, "Random Forest" = wine_tree_upsample)
+models_upsample <- models_upsample[order(names(models_upsample))]
 
 evalm_upsample <- evalm(models_upsample, gnames = names(models_upsample), silent = TRUE, showplots = FALSE)
 
@@ -416,4 +388,285 @@ evalm_upsample$roc
 wine_results_upsample <- resamples(models_upsample)$values
 summary(wine_results_upsample)
 ```
+
+### Before Upsampling
+
+Before upsampling, the ROC curve values for most models indicated moderate to high performance, with minimal variation observed. Models like Ridge and Elastic showed slight improvements in their ROC curves after upsampling, indicating enhanced overall predictive power. However, the ROC curves of other models remained relatively stable, suggesting that their discriminatory ability between positive and negative instances did not significantly change.
+
+### After Upsampling
+
+Despite the limited improvement in ROC curve values post-upsampling, there was a substantial enhancement in sensitivity across various models. This improvement is particularly crucial as it signifies a significant boost in the models' ability to correctly identify positive instances, such as high-quality wines. The upsampling technique effectively addressed the imbalance in the dataset, allowing the models to better capture the minority class and make more accurate predictions for positive cases.
+
+### Random Forest Exception
+
+The Random Forest model, known for its robustness to class imbalances, showed consistent ROC curve values before and after upsampling. While the ROC curve did not demonstrate significant improvement, the model's sensitivity, although not dramatically enhanced, still benefited from the upsampling process. This indicates that Random Forest maintained its overall predictive power even with the dataset adjustments.
+
+### Importance of Sensitivity Improvement
+
+The notable improvement in sensitivity post-upsampling holds more significant practical implications than the modest changes in ROC curve values. Sensitivity directly influences the models' ability to detect positive instances accurately, aligning with the primary objective of identifying high-quality wines. Therefore, the sensitivity enhancement observed after upsampling reinforces the effectiveness of this technique in improving model performance for imbalanced datasets.
+
+### Considerations
+
+While sensitivity improvement is a positive outcome of upsampling, it's essential to consider potential trade-offs and drawbacks. Upsampling can introduce biases or noise into the data, leading to overfitting or reduced generalization performance. Additionally, upsampling increases computational complexity and resource requirements, which may impact model scalability and real-time prediction capabilities. Hence, a balanced approach incorporating various validation techniques and performance metrics is crucial to evaluate model effectiveness comprehensively.
+
+**Appendix B: Subset of Predictors Analysis**
+
+```{r}
+wine_subset <- quality ~ alcohol + sulphates + volatile.acidity + density + citric.acid
+
+wine_logit_subset <- train(wine_subset,
+                     data = wine,
+                     method = "glm",
+                     trControl = trainControl(method = "repeatedcv", 
+                                          number = 10, 
+                                          repeats = 10,
+                                              savePredictions = TRUE,
+                                              summaryFunction = twoClassSummary,
+                                              classProbs = TRUE),
+                     metric = "ROC",
+                     preProcess=c("center","scale"))
+
+
+wine_lda_subset<- train(wine_subset,
+                     data = wine,
+                     method = "lda",
+                     trControl = trainControl(method = "repeatedcv", 
+                                          number = 10, 
+                                          repeats = 10,
+                                              savePredictions = TRUE, 
+                                              summaryFunction = twoClassSummary, 
+                                              classProbs = TRUE),
+                     metric = "ROC",
+                     preProcess=c("center","scale"))
+
+wine_qda_subset <- train(wine_subset,
+                     data = wine,
+                     method = "qda",
+                     trControl = trainControl(method = "repeatedcv", 
+                                          number = 10, 
+                                          repeats = 10,
+                                              savePredictions = TRUE, 
+                                              summaryFunction = twoClassSummary, 
+                                              classProbs = TRUE),
+                     metric = "ROC",
+                     preProcess=c("center","scale"))
+
+wine_lasso_subset <- train(wine_subset,
+                    data = wine,
+                    method="glmnet",
+                    trControl=trainControl(method = "repeatedcv", 
+                                          number = 10, 
+                                          repeats = 10,
+                                           savePredictions = TRUE, 
+                                           summaryFunction = twoClassSummary, 
+                                           classProbs = TRUE),
+                    metric = "ROC",
+                    tuneGrid=expand.grid(alpha=1,
+                                         lambda=seq(0,0.1,by=0.01)),
+                    preProcess=c("center","scale"))
+
+wine_ridge_subset <- train(wine_subset,
+                    data = wine,
+                    method="glmnet",
+                    trControl=trainControl(method = "repeatedcv", 
+                                          number = 10, 
+                                          repeats = 10,
+                                           savePredictions = TRUE, 
+                                           summaryFunction = twoClassSummary, 
+                                           classProbs = TRUE),
+                    metric = "ROC",
+                    tuneGrid=expand.grid(alpha=0,
+                                         lambda=seq(0,0.1,by=0.01)),
+                    preProcess=c("center","scale"))
+
+wine_elastic_subset <- train(wine_subset,
+                    data = wine,
+                    method="glmnet",
+                    trControl=trainControl(method = "repeatedcv", 
+                                          number = 10, 
+                                          repeats = 10,
+                                           savePredictions = TRUE, 
+                                           summaryFunction = twoClassSummary, 
+                                           classProbs = TRUE),
+                    metric = "ROC",
+                    tuneGrid=expand.grid(alpha=seq(0,0.1,by=0.01),
+                                         lambda=seq(0,0.1,by=0.01)),
+                    preProcess=c("center","scale"))
+
+
+wine_tree_subset <- train(wine_subset,
+                   data=wine,
+                   method="rf",
+                   trControl=trainControl(method = "repeatedcv", 
+                                          number = 10, 
+                                          repeats = 10,
+                                          savePredictions = TRUE, 
+                                          summaryFunction = twoClassSummary, 
+                                          classProbs = TRUE), # Out-of-bag MSE
+                   metric = "ROC",
+                   tuneGrid=data.frame(mtry=seq(1,5,by=1)),
+                   ntree=100)
+
+models_subset <- list(Logistic = wine_logit_subset, LDA = wine_lda_subset, QDA = wine_qda_subset, Lasso = wine_lasso_subset, Ridge = wine_ridge_subset, Elastic = wine_elastic_subset, "Random Forest" = wine_tree_subset)
+models_subset <- models_subset[order(names(models_subset))]
+
+evalm_subset <- evalm(models_subset, gnames = names(models_subset), silent = TRUE, showplots = FALSE)
+
+evalm_subset$roc
+
+wine_results_subset <- resamples(models_subset)$values
+summary(wine_results_subset)
+```
+
+
+
+
+```{r}
+wine_subset_upsample <- quality ~ alcohol + sulphates + volatile.acidity + density + citric.acid
+
+wine_logit_subset_upsample <- train(wine_subset_upsample,
+                     data = wine,
+                     method = "glm",
+                     trControl = trainControl(method = "repeatedcv", 
+                                          number = 10, 
+                                          repeats = 10,
+                                              savePredictions = TRUE,
+                                              summaryFunction = twoClassSummary,
+                                              classProbs = TRUE,
+                                              sampling = "up"),
+                     metric = "ROC",
+                     preProcess=c("center","scale"))
+
+
+wine_lda_subset_upsample<- train(wine_subset_upsample,
+                     data = wine,
+                     method = "lda",
+                     trControl = trainControl(method = "repeatedcv", 
+                                          number = 10, 
+                                          repeats = 10,
+                                              savePredictions = TRUE, 
+                                              summaryFunction = twoClassSummary, 
+                                              classProbs = TRUE,
+                                              sampling = "up"),
+                     metric = "ROC",
+                     preProcess=c("center","scale"))
+
+wine_qda_subset_upsample <- train(wine_subset_upsample,
+                     data = wine,
+                     method = "qda",
+                     trControl = trainControl(method = "repeatedcv", 
+                                          number = 10, 
+                                          repeats = 10,
+                                              savePredictions = TRUE, 
+                                              summaryFunction = twoClassSummary, 
+                                              classProbs = TRUE,
+                                              sampling = "up"),
+                     metric = "ROC",
+                     preProcess=c("center","scale"))
+
+wine_lasso_subset_upsample <- train(wine_subset_upsample,
+                    data = wine,
+                    method="glmnet",
+                    trControl=trainControl(method = "repeatedcv", 
+                                          number = 10, 
+                                          repeats = 10,
+                                           savePredictions = TRUE, 
+                                           summaryFunction = twoClassSummary, 
+                                           classProbs = TRUE,
+                                           sampling = "up"),
+                    metric = "ROC",
+                    tuneGrid=expand.grid(alpha=1,
+                                         lambda=seq(0,0.1,by=0.01)),
+                    preProcess=c("center","scale"))
+
+wine_ridge_subset_upsample <- train(wine_subset_upsample,
+                    data = wine,
+                    method="glmnet",
+                    trControl=trainControl(method = "repeatedcv", 
+                                          number = 10, 
+                                          repeats = 10,
+                                           savePredictions = TRUE, 
+                                           summaryFunction = twoClassSummary, 
+                                           classProbs = TRUE,
+                                           sampling = "up"),
+                    metric = "ROC",
+                    tuneGrid=expand.grid(alpha=0,
+                                         lambda=seq(0,0.1,by=0.01)),
+                    preProcess=c("center","scale"))
+
+wine_elastic_subset_upsample <- train(wine_subset_upsample,
+                    data = wine,
+                    method="glmnet",
+                    trControl=trainControl(method = "repeatedcv", 
+                                          number = 10, 
+                                          repeats = 10,
+                                           savePredictions = TRUE, 
+                                           summaryFunction = twoClassSummary, 
+                                           classProbs = TRUE,
+                                           sampling = "up"),
+                    metric = "ROC",
+                    tuneGrid=expand.grid(alpha=seq(0,0.1,by=0.01),
+                                         lambda=seq(0,0.1,by=0.01)),
+                    preProcess=c("center","scale"))
+
+
+wine_tree_subset_upsample <- train(wine_subset_upsample,
+                   data=wine,
+                   method="rf",
+                   trControl=trainControl(method = "repeatedcv", 
+                                          number = 10, 
+                                          repeats = 10,
+                                          savePredictions = TRUE, 
+                                          summaryFunction = twoClassSummary, 
+                                          classProbs = TRUE,
+                                          sampling = "up"), # Out-of-bag MSE
+                   metric = "ROC",
+                   tuneGrid=data.frame(mtry=seq(1,5,by=1)),
+                   ntree=100)
+
+models_subset_upsample <- list(Logistic = wine_logit_subset_upsample, LDA = wine_lda_subset_upsample, QDA = wine_qda_subset_upsample, Lasso = wine_lasso_subset_upsample, Ridge = wine_ridge_subset_upsample, Elastic = wine_elastic_subset_upsample, "Random Forest" = wine_tree_subset_upsample)
+models_subset_upsample <- models_subset_upsample[order(names(models_subset_upsample))]
+
+evalm_subset_upsample <- evalm(models_subset_upsample, gnames = names(models_subset_upsample), silent = TRUE, showplots = FALSE)
+
+evalm_subset_upsample$roc
+
+wine_results_subset_upsample <- resamples(models_subset_upsample)$values
+summary(wine_results_subset_upsample)
+```
+
+### Subset Selection Based on Variable Importance
+
+A subset of predictors was selected based on their variable importance (varImp) scores, including alcohol, sulphates, volatile acidity, density, and citric acid. These predictors were deemed crucial for wine quality prediction based on their impact on model performance.
+
+### Performance Metrics with Subset of Predictors
+
+Upon analyzing the performance metrics using this subset of predictors, it was observed that the ROC curves slightly performed worse compared to using all predictors. Models like Elastic Net, Lasso, and Logistic Regression showed a minor decrease in ROC curve values, indicating a slight reduction in overall predictive power when limited to the subset.
+
+### Sensitivity and Specificity Evaluation
+
+Despite the decrease in ROC curve values, the subset of predictors exhibited improved sensitivity in most models, especially after upsampling. This improvement in sensitivity underscores the subset's effectiveness in capturing positive instances, which is crucial for identifying high-quality wines.
+
+### Comparison with Full Predictor Set
+
+It's noteworthy that the subset of predictors did not significantly outperform or match the performance achieved with the full set of predictors. In fact, the subset technically performed worse in terms of ROC curve values, suggesting that the exclusion of certain predictors might have led to a loss of predictive information.
+
+### Upsampling Effect
+
+When comparing the subset's performance with and without upsampling, sensitivity showed noticeable improvement post-upsampling, indicating that upsampling effectively addressed class imbalance issues and enhanced the models' ability to detect positive instances.
+
+### Conclusion on Subset Performance
+
+While the subset of predictors based on varImp scores showed promise in improving sensitivity, it also resulted in a slight decrease in ROC curve values. This highlights the trade-off between sensitivity and overall predictive power when using a limited set of predictors. For optimal performance, considering all relevant predictors in conjunction with appropriate data balancing techniques like upsampling may yield more robust and accurate predictive models for wine quality prediction.
+
+
+
+
+
+
+
+
+
+
+
 
